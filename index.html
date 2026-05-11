@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bangkok Urban Well-being WebGIS</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-dark: #0f1419;
+  --bg-panel: #1a2332;
+  --bg-card: #1e2b3d;
+  --accent-transit: #00d4ff;
+  --accent-food: #4ade80;
+  --accent-risk: #f97316;
+  --text-primary: #e8ecf1;
+  --text-secondary: #8899aa;
+  --text-muted: #556677;
+  --border: rgba(255,255,255,0.07);
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --radius: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Sarabun', sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* ─── HEADER ─── */
+#header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 56px;
+  background: linear-gradient(135deg, #0d1520 0%, #162033 100%);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  z-index: 1000;
+  backdrop-filter: blur(12px);
+}
+
+#header h1 {
+  font-family: 'Prompt', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--accent-transit), var(--accent-food));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 0.5px;
+}
+
+#header .subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 12px;
+  font-weight: 300;
+}
+
+.header-actions {
+  display: flex; gap: 8px; align-items: center;
+}
+
+.btn-tab {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Sarabun'; font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.btn-tab:hover, .btn-tab.active {
+  background: rgba(0,212,255,0.1);
+  border-color: var(--accent-transit);
+  color: var(--accent-transit);
+}
+
+/* ─── MAP ─── */
+#map {
+  position: fixed;
+  top: 56px; left: 0; right: 360px; bottom: 0;
+  z-index: 1;
+}
+
+/* ─── SIDEBAR ─── */
+#sidebar {
+  position: fixed;
+  top: 56px; right: 0; bottom: 0;
+  width: 360px;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  z-index: 500;
+  padding: 16px;
+}
+
+#sidebar::-webkit-scrollbar { width: 4px; }
+#sidebar::-webkit-scrollbar-track { background: transparent; }
+#sidebar::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 2px; }
+
+.panel-section {
+  margin-bottom: 20px;
+}
+
+.panel-title {
+  font-family: 'Prompt', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Layer toggles */
+.layer-toggle {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 6px;
+  border: 1px solid transparent;
+}
+.layer-toggle:hover {
+  background: rgba(255,255,255,0.03);
+}
+.layer-toggle.active {
+  background: rgba(255,255,255,0.05);
+  border-color: var(--border);
+}
+
+.layer-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.layer-icon.transit { background: rgba(0,212,255,0.15); }
+.layer-icon.food { background: rgba(74,222,128,0.15); }
+.layer-icon.risk { background: rgba(249,115,22,0.15); }
+
+.layer-info h4 {
+  font-size: 13px; font-weight: 600;
+  color: var(--text-primary);
+}
+.layer-info p {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.toggle-switch {
+  width: 36px; height: 20px;
+  border-radius: 10px;
+  background: var(--text-muted);
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.toggle-switch.on { background: var(--accent-transit); }
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: white;
+  transition: all 0.3s;
+}
+.toggle-switch.on::after { left: 18px; }
+
+/* Filter */
+.filter-select {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: 'Sarabun'; font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+.filter-select:focus {
+  border-color: var(--accent-transit);
+}
+
+/* Stats cards */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.stat-card .value {
+  font-family: 'Prompt', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.stat-card .label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+.stat-card.transit .value { color: var(--accent-transit); }
+.stat-card.food .value { color: var(--accent-food); }
+.stat-card.risk .value { color: var(--accent-risk); }
+.stat-card.neutral .value { color: var(--text-secondary); }
+
+/* District info card */
+.district-card {
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+.district-card h3 {
+  font-family: 'Prompt', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.district-card .bar-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px;
+}
+.district-card .bar-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  width: 60px;
+  flex-shrink: 0;
+}
+.district-card .bar-track {
+  flex: 1; height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.district-card .bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+.district-card .bar-value {
+  font-size: 11px;
+  font-weight: 600;
+  width: 45px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Legend */
+.legend-item {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+.legend-dot {
+  width: 12px; height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Interpretation panel */
+#interpretation {
+  display: none;
+  position: fixed;
+  top: 56px; left: 0; right: 360px; bottom: 0;
+  background: var(--bg-dark);
+  z-index: 999;
+  overflow-y: auto;
+  padding: 40px 60px;
+}
+#interpretation.show { display: block; }
+#interpretation h2 {
+  font-family: 'Prompt', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  background: linear-gradient(90deg, var(--accent-transit), var(--accent-food));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#interpretation h3 {
+  font-family: 'Prompt'; font-size: 17px; font-weight: 600;
+  color: var(--accent-transit);
+  margin: 24px 0 10px;
+}
+#interpretation p, #interpretation li {
+  font-size: 14px; line-height: 1.7;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+#interpretation ul {
+  padding-left: 20px;
+}
+.insight-box {
+  background: var(--bg-card);
+  border-left: 3px solid var(--accent-transit);
+  padding: 14px 18px;
+  border-radius: 0 8px 8px 0;
+  margin: 12px 0;
+}
+.insight-box.food { border-color: var(--accent-food); }
+.insight-box.risk { border-color: var(--accent-risk); }
+
+/* Popup styling */
+.leaflet-popup-content-wrapper {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+}
+.leaflet-popup-tip { background: var(--bg-card) !important; }
+.leaflet-popup-content {
+  font-family: 'Sarabun', sans-serif !important;
+  font-size: 13px !important;
+  margin: 12px !important;
+}
+.popup-title {
+  font-family: 'Prompt', sans-serif;
+  font-size: 14px; font-weight: 600;
+  margin-bottom: 6px;
+}
+.popup-row {
+  display: flex; justify-content: space-between;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 12px;
+}
+.popup-row span:first-child { color: var(--text-muted); }
+.popup-row span:last-child { font-weight: 600; }
+.popup-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+/* Loading */
+#loading {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg-dark);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.5s;
+}
+#loading.hide { opacity: 0; pointer-events: none; }
+.loader-ring {
+  width: 48px; height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent-transit);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading p {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+  #sidebar { width: 100%; top: auto; bottom: 0; height: 50vh; left: 0; right: 0; }
+  #map { right: 0; bottom: 50vh; }
+  #interpretation { right: 0; bottom: 50vh; }
+}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="loader-ring"></div>
+  <p>กำลังโหลดข้อมูลเชิงพื้นที่กรุงเทพมหานคร...</p>
+</div>
+
+<!-- Header -->
+<div id="header">
+  <div style="display:flex;align-items:baseline;">
+    <h1>BKK Urban Well-being</h1>
+    <span class="subtitle">WebGIS Analysis — Transportation · Food · Disaster Risk</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn-tab active" onclick="showView('map')">🗺️ แผนที่</button>
+    <button class="btn-tab" onclick="showView('analysis')">📊 วิเคราะห์</button>
+  </div>
+</div>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- Interpretation Panel -->
+<div id="interpretation"></div>
+
+<!-- Sidebar -->
+<div id="sidebar">
+  <!-- Layers -->
+  <div class="panel-section">
+    <div class="panel-title">ชั้นข้อมูล (Layers)</div>
+    
+    <div class="layer-toggle active" id="layer-transit" onclick="toggleLayer('transit')">
+      <div class="layer-icon transit">🚆</div>
+      <div class="layer-info">
+        <h4>Transportation Access</h4>
+        <p>สถานี BTS / MRT และเส้นทาง</p>
+      </div>
+      <div class="toggle-switch on" id="toggle-transit"></div>
+    </div>
+    
+    <div class="layer-toggle active" id="layer-food" onclick="toggleLayer('food')">
+      <div class="layer-icon food">🌾</div>
+      <div class="layer-info">
+        <h4>Food Access</h4>
+        <p>พื้นที่เกษตรกรรม / แหล่งผลิตอาหาร</p>
+      </div>
+      <div class="toggle-switch on" id="toggle-food"></div>
+    </div>
+    
+    <div class="layer-toggle active" id="layer-risk" onclick="toggleLayer('risk')">
+      <div class="layer-icon risk">⚠️</div>
+      <div class="layer-info">
+        <h4>Disaster Risk</h4>
+        <p>พื้นที่เสี่ยงน้ำท่วม / พื้นที่ลุ่มต่ำ</p>
+      </div>
+      <div class="toggle-switch on" id="toggle-risk"></div>
+    </div>
+  </div>
+  
+  <!-- Filter -->
+  <div class="panel-section">
+    <div class="panel-title">ค้นหาเขต (Filter)</div>
+    <select class="filter-select" id="districtFilter" onchange="zoomToDistrict()">
+      <option value="">— เลือกเขต —</option>
+    </select>
+  </div>
+
+  <!-- Stats -->
+  <div class="panel-section" id="statsPanel">
+    <div class="panel-title">ภาพรวมกรุงเทพมหานคร</div>
+    <div class="stat-grid">
+      <div class="stat-card transit">
+        <div class="value" id="statTransit">139</div>
+        <div class="label">สถานีขนส่ง</div>
+      </div>
+      <div class="stat-card food">
+        <div class="value" id="statFood">50</div>
+        <div class="label">เขตมีพื้นที่เกษตร</div>
+      </div>
+      <div class="stat-card risk">
+        <div class="value" id="statRisk">—</div>
+        <div class="label">เขตเสี่ยงสูง</div>
+      </div>
+      <div class="stat-card neutral">
+        <div class="value" id="statDistricts">50</div>
+        <div class="label">เขตที่วิเคราะห์</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Selected district info -->
+  <div class="panel-section" id="districtInfo" style="display:none;">
+    <div class="panel-title" id="districtInfoTitle">ข้อมูลเขต</div>
+    <div class="district-card" id="districtCardContent"></div>
+  </div>
+  
+  <!-- Legend -->
+  <div class="panel-section">
+    <div class="panel-title">สัญลักษณ์ (Legend)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent-transit);border-radius:50%"></div> สถานี BTS</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a855f7;border-radius:50%"></div> สถานี MRT</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9;height:3px;border-radius:1px"></div> เส้นทางรถไฟฟ้า MRT</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(74,222,128,0.4)"></div> พื้นที่เกษตรกรรม</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(59,130,246,0.4)"></div> พื้นที่แหล่งน้ำ</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(249,115,22,0.4)"></div> พื้นที่เสี่ยง (พื้นที่ลุ่ม/ขยะ)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.08)"></div> ขอบเขตเขต</div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ═══════════════════════════════════════════
+//  WebGIS Application
+// ═══════════════════════════════════════════
+
+// Bangkok center
+const BKK_CENTER = [13.75, 100.52];
+const BKK_ZOOM = 11;
+
+// Init map
+const map = L.map('map', {
+  center: BKK_CENTER,
+  zoom: BKK_ZOOM,
+  zoomControl: false
+});
+
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+// Dark basemap
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© CartoDB © OpenStreetMap',
+  maxZoom: 19
+}).addTo(map);
+
+// Layer groups
+const layers = {
+  transit: L.layerGroup().addTo(map),
+  food: L.layerGroup().addTo(map),
+  risk: L.layerGroup().addTo(map),
+  districts: L.layerGroup().addTo(map),
+  boundary: L.layerGroup().addTo(map)
+};
+
+// State
+let districtStats = [];
+let districtGeoJSON = null;
+let activeView = 'map';
+const layerState = { transit: true, food: true, risk: true };
+
+// ═══ LAYER TOGGLE ═══
+function toggleLayer(name) {
+  layerState[name] = !layerState[name];
+  const toggle = document.getElementById('toggle-' + name);
+  const row = document.getElementById('layer-' + name);
+  
+  if (layerState[name]) {
+    map.addLayer(layers[name]);
+    toggle.classList.add('on');
+    row.classList.add('active');
+  } else {
+    map.removeLayer(layers[name]);
+    toggle.classList.remove('on');
+    row.classList.remove('active');
+  }
+}
+
+// ═══ VIEW TOGGLE ═══
+function showView(view) {
+  activeView = view;
+  document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
+  
+  if (view === 'map') {
+    document.querySelectorAll('.btn-tab')[0].classList.add('active');
+    document.getElementById('interpretation').classList.remove('show');
+  } else {
+    document.querySelectorAll('.btn-tab')[1].classList.add('active');
+    renderInterpretation();
+    document.getElementById('interpretation').classList.add('show');
+  }
+}
+
+// ═══ ZOOM TO DISTRICT ═══
+function zoomToDistrict() {
+  const val = document.getElementById('districtFilter').value;
+  if (!val || !districtGeoJSON) return;
+  
+  districtGeoJSON.eachLayer(layer => {
+    if (layer.feature.properties.AMPHOE_E === val) {
+      map.fitBounds(layer.getBounds(), { padding: [40, 40] });
+      showDistrictInfo(val);
+    }
+  });
+}
+
+function showDistrictInfo(districtName) {
+  const stat = districtStats.find(d => d.AMPHOE_E === districtName);
+  if (!stat) return;
+  
+  const panel = document.getElementById('districtInfo');
+  panel.style.display = 'block';
+  document.getElementById('districtInfoTitle').textContent = stat.AMPHOE_T + ' (' + stat.AMPHOE_E + ')';
+  
+  const maxTransit = Math.max(...districtStats.map(d => d.transit_stations)) || 1;
+  const maxFood = Math.max(...districtStats.map(d => d.food_access_pct)) || 1;
+  const maxFlood = Math.max(...districtStats.map(d => d.flood_risk_pct)) || 1;
+  
+  document.getElementById('districtCardContent').innerHTML = `
+    <h3 style="color:var(--text-primary)">${stat.AMPHOE_T}</h3>
+    <div class="bar-row">
+      <span class="bar-label" style="color:var(--accent-transit)">🚆 ขนส่ง</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(stat.transit_stations/maxTransit*100).toFixed(0)}%;background:var(--accent-transit)"></div></div>
+      <span class="bar-value" style="color:var(--accent-transit)">${stat.transit_stations} สถานี</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label" style="color:var(--accent-food)">🌾 อาหาร</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(stat.food_access_pct/maxFood*100).toFixed(0)}%;background:var(--accent-food)"></div></div>
+      <span class="bar-value" style="color:var(--accent-food)">${stat.food_access_pct}%</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label" style="color:var(--accent-risk)">⚠️ เสี่ยง</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(stat.flood_risk_pct/maxFlood*100).toFixed(0)}%;background:var(--accent-risk)"></div></div>
+      <span class="bar-value" style="color:var(--accent-risk)">${stat.flood_risk_pct}%</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">🏙️ เมือง</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${stat.urban_pct.toFixed(0)}%;background:var(--text-secondary)"></div></div>
+      <span class="bar-value">${stat.urban_pct}%</span>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text-muted)">
+      พื้นที่รวม: ${stat.total_area_rai.toLocaleString()} ไร่
+    </div>
+  `;
+}
+
+// ═══ INTERPRETATION / ANALYSIS ═══
+function renderInterpretation() {
+  const highRisk = districtStats.filter(d => d.flood_risk_pct > 15).sort((a,b) => b.flood_risk_pct - a.flood_risk_pct);
+  const lowTransit = districtStats.filter(d => d.transit_stations === 0).length;
+  const highFood = districtStats.filter(d => d.food_access_pct > 30);
+  const urbanNoTransit = districtStats.filter(d => d.urban_pct > 60 && d.transit_stations < 2);
+  
+  document.getElementById('interpretation').innerHTML = `
+<h2>🔍 การวิเคราะห์ Urban Well-being กรุงเทพมหานคร</h2>
+<p style="color:var(--text-muted);margin-bottom:24px;">วิเคราะห์จากข้อมูลการใช้ประโยชน์ที่ดิน (LULC 2566) สถานีรถไฟฟ้า BTS/MRT และขอบเขตเขตกรุงเทพมหานคร</p>
+
+<h3>1. Transportation Access — การเข้าถึงระบบขนส่ง</h3>
+<div class="insight-box">
+  <p><strong>Pattern:</strong> สถานีรถไฟฟ้ากระจุกตัวใน Inner Bangkok (จตุจักร 14 สถานี, คลองเตย 9, ปทุมวัน 9) ในขณะที่เขตชานเมืองฝั่งตะวันออกและตะวันตกแทบไม่มีสถานีเลย</p>
+</div>
+<ul>
+  <li><strong>${lowTransit} เขต</strong> จากทั้งหมด 50 เขต <strong>ไม่มีสถานีรถไฟฟ้าแม้แต่สถานีเดียว</strong> — สะท้อนปัญหาความเหลื่อมล้ำในการเข้าถึงระบบขนส่งมวลชนหลัก</li>
+  <li>Transit Density สูงสุดที่ <strong>ปทุมวัน</strong> (1.94 สถานี/1,000 ไร่) เนื่องจากพื้นที่เขตเล็กแต่มีสถานีหนาแน่น</li>
+  <li>เขตชานเมือง เช่น หนองจอก ลาดกระบัง คลองสามวา มีพื้นที่กว้างแต่ขาดโครงข่ายรถไฟฟ้า ทำให้ประชาชนต้องพึ่งพารถส่วนตัวหรือรถโดยสารเป็นหลัก</li>
+</ul>
+
+<h3>2. Food Access — การเข้าถึงแหล่งอาหาร</h3>
+<div class="insight-box food">
+  <p><strong>Pattern:</strong> พื้นที่เกษตรกรรมกระจุกตัวในเขตรอบนอก (หนองจอก 59%, บางขุนเทียน 45%, ลาดกระบัง 42%) ขณะที่ใจกลางเมืองแทบไม่มีพื้นที่ผลิตอาหารเลย</p>
+</div>
+<ul>
+  <li>เขตรอบนอกยังคงเป็น <strong>"Food Production Belt"</strong> ของกรุงเทพฯ โดยเฉพาะ${highFood.map(d => d.AMPHOE_T).join(', ')}</li>
+  <li>เขตในเมือง (พระนคร, สัมพันธวงศ์, ปทุมวัน, วัฒนา) มีพื้นที่เกษตรกรรม <strong>น้อยกว่า 1%</strong> ต้องพึ่งพาการขนส่งอาหารจากภายนอกเกือบทั้งหมด</li>
+  <li>ความสัมพันธ์ผกผัน: เขตที่มีระบบขนส่งดี กลับเป็นเขตที่ขาดแคลนแหล่งผลิตอาหารในพื้นที่</li>
+  <li>พื้นที่เกษตรหลากหลาย: นาข้าว สวนผลไม้ บ่อเพาะเลี้ยงสัตว์น้ำ ซึ่งมีความสำคัญต่อ Urban Food Security</li>
+</ul>
+
+<h3>3. Disaster Risk — ความเสี่ยงภัยพิบัติ</h3>
+<div class="insight-box risk">
+  <p><strong>Pattern:</strong> เขตริมแม่น้ำเจ้าพระยาและเขตที่มีพื้นที่ลุ่มต่ำ มีสัดส่วนพื้นที่เสี่ยงสูง (สัมพันธวงศ์ 36%, มีนบุรี 22%, บางคอแหลม 17%)</p>
+</div>
+<ul>
+  <li><strong>${highRisk.length} เขต</strong> มีพื้นที่เสี่ยงภัย (แหล่งน้ำ + พื้นที่ลุ่ม) มากกว่า 15%</li>
+  <li>เขตมีนบุรีมีความซับซ้อน: พื้นที่เกษตรสูง (26%) + พื้นที่เสี่ยงน้ำท่วมสูง (22%) แสดงถึง <strong>ความเปราะบางของภาคเกษตร</strong> ต่อภัยน้ำท่วม</li>
+  <li>เขตในเมืองริมน้ำ (คลองสาน, บางพลัด, พระนคร) เผชิญความเสี่ยงจากแม่น้ำเจ้าพระยา + ระบบระบายน้ำไม่เพียงพอในพื้นที่ Urban Dense</li>
+  <li>เขตลาดกระบัง เป็น "Multi-hazard zone" ที่มีทั้งพื้นที่ลุ่ม พื้นที่เกษตร และอุตสาหกรรม ซ้อนทับกัน</li>
+</ul>
+
+<h3>4. ความเชื่อมโยงเชิงพื้นที่ (Spatial Nexus)</h3>
+<div class="insight-box">
+  <p><strong>Key Finding:</strong> กรุงเทพฯ แสดง "Inverse Relationship" ระหว่าง Transportation Access กับ Food Access อย่างชัดเจน — เขตที่ขนส่งดีไม่มีอาหาร, เขตที่มีอาหารขาดขนส่ง</p>
+</div>
+<ul>
+  <li><strong>Urban Core (ชั้นใน):</strong> ขนส่งดี + ไม่มีพื้นที่เกษตร + เสี่ยงน้ำท่วมจากระบบระบายน้ำ</li>
+  <li><strong>Peri-urban (ชานเมือง):</strong> ขนส่งอ่อน + พื้นที่เกษตรมาก + เสี่ยงน้ำท่วมจากพื้นที่ลุ่ม</li>
+  <li>${urbanNoTransit.length > 0 ? '<strong>' + urbanNoTransit.length + ' เขต</strong> มีความเป็นเมืองสูง (>60% urban) แต่มีสถานีรถไฟฟ้าน้อยกว่า 2 — gap ที่ต้องแก้ไข' : 'ส่วนใหญ่ของเขตเมืองสูงมีสถานีรถไฟฟ้ารองรับ'}</li>
+</ul>
+
+<h3>5. ข้อเสนอแนวทางการนำผลไปใช้วางผังเมือง</h3>
+<ul>
+  <li><strong>ขยายโครงข่ายขนส่ง:</strong> ให้ความสำคัญกับเขตรอบนอกฝั่งตะวันออก (หนองจอก, คลองสามวา, มีนบุรี) ที่มีพื้นที่กว้างแต่ขาดการเข้าถึง เพื่อเชื่อม Food Production Zone กับตลาดผู้บริโภค</li>
+  <li><strong>คุ้มครองพื้นที่เกษตร:</strong> กำหนดเขตคุ้มครองเกษตรกรรม (Agricultural Protection Zone) โดยเฉพาะในหนองจอก ลาดกระบัง บางขุนเทียน ที่กำลังถูกรุกจากการขยายตัวของเมือง</li>
+  <li><strong>วางแผนป้องกันน้ำท่วมแบบบูรณาการ:</strong> เชื่อมโยงระบบระบายน้ำกับ Green Infrastructure — ใช้พื้นที่เกษตรรอบนอกเป็น Retention Area และปรับปรุงระบบในเขตชั้นใน</li>
+  <li><strong>พัฒนา Urban Agriculture:</strong> ส่งเสริมเกษตรในเมืองในเขตชั้นใน (rooftop farming, community garden) เพื่อเพิ่ม Food Access ในพื้นที่ที่ขาดแคลน</li>
+  <li><strong>Disaster-Resilient Land Use Planning:</strong> เขตที่มี Multi-hazard (เช่น ลาดกระบัง มีนบุรี) ควรมีแผนผังการใช้ที่ดินเฉพาะที่คำนึงถึง Flood Risk + Food Security พร้อมกัน</li>
+</ul>
+  `;
+}
+
+// ═══ DATA LOADING ═══
+async function loadData() {
+  try {
+    // Load all data files
+    const [transitRes, mrtLinesRes, districtRes, boundaryRes, foodRes, riskRes, statsRes] = await Promise.all([
+      fetch('transit_stations.geojson'),
+      fetch('mrt_lines.geojson'),
+      fetch('districts.geojson'),
+      fetch('bkk_boundary.geojson'),
+      fetch('food_areas.geojson'),
+      fetch('risk_areas.geojson'),
+      fetch('district_stats.json')
+    ]);
+
+    const transitData = await transitRes.json();
+    const mrtLinesData = await mrtLinesRes.json();
+    const districtData = await districtRes.json();
+    const boundaryData = await boundaryRes.json();
+    const foodData = await foodRes.json();
+    const riskData = await riskRes.json();
+    districtStats = await statsRes.json();
+
+    // ─── Bangkok boundary ───
+    L.geoJSON(boundaryData, {
+      style: {
+        color: '#fff',
+        weight: 2,
+        opacity: 0.3,
+        fillColor: 'transparent',
+        fillOpacity: 0,
+        dashArray: '8,6'
+      }
+    }).addTo(layers.boundary);
+
+    // ─── Districts ───
+    districtGeoJSON = L.geoJSON(districtData, {
+      style: feature => {
+        const stat = districtStats.find(d => d.AMPHOE_E === feature.properties.AMPHOE_E);
+        return {
+          color: 'rgba(255,255,255,0.15)',
+          weight: 1,
+          fillColor: stat ? getDistrictColor(stat) : 'transparent',
+          fillOpacity: 0.12
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        const stat = districtStats.find(d => d.AMPHOE_E === feature.properties.AMPHOE_E);
+        if (stat) {
+          layer.bindPopup(createDistrictPopup(stat));
+          layer.on('click', () => showDistrictInfo(stat.AMPHOE_E));
+        }
+        layer.on('mouseover', function() { this.setStyle({ fillOpacity: 0.25, weight: 2 }); });
+        layer.on('mouseout', function() { this.setStyle({ fillOpacity: 0.12, weight: 1 }); });
+      }
+    }).addTo(layers.districts);
+
+    // Populate filter
+    const select = document.getElementById('districtFilter');
+    const districtNames = districtStats.map(d => ({ en: d.AMPHOE_E, th: d.AMPHOE_T }))
+      .sort((a,b) => a.en.localeCompare(b.en));
+    districtNames.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.en;
+      opt.textContent = `${d.th} (${d.en})`;
+      select.appendChild(opt);
+    });
+
+    // ─── Transit stations ───
+    L.geoJSON(transitData, {
+      pointToLayer: (feature, latlng) => {
+        const isBTS = feature.properties.type === 'BTS';
+        return L.circleMarker(latlng, {
+          radius: 5,
+          fillColor: isBTS ? '#00d4ff' : '#a855f7',
+          color: isBTS ? '#00d4ff' : '#a855f7',
+          weight: 1,
+          opacity: 0.9,
+          fillOpacity: 0.8
+        });
+      },
+      onEachFeature: (feature, layer) => {
+        const p = feature.properties;
+        layer.bindPopup(`
+          <div class="popup-title">${p.name}</div>
+          <div class="popup-row"><span>ประเภท</span><span>${p.type}</span></div>
+          <div class="popup-row"><span>รหัส</span><span>${p.id}</span></div>
+          ${p.district ? `<div class="popup-row"><span>เขต</span><span>${p.district}</span></div>` : ''}
+          <div class="popup-badge" style="background:${p.type==='BTS'?'rgba(0,212,255,0.2);color:#00d4ff':'rgba(168,85,247,0.2);color:#a855f7'}">${p.type}</div>
+        `);
+      }
+    }).addTo(layers.transit);
+
+    // ─── MRT lines ───
+    L.geoJSON(mrtLinesData, {
+      style: {
+        color: '#0ea5e9',
+        weight: 3,
+        opacity: 0.6
+      }
+    }).addTo(layers.transit);
+
+    // ─── Food areas ───
+    L.geoJSON(foodData, {
+      style: {
+        fillColor: '#4ade80',
+        fillOpacity: 0.25,
+        color: '#4ade80',
+        weight: 0.5,
+        opacity: 0.4
+      },
+      onEachFeature: (feature, layer) => {
+        layer.bindPopup(`
+          <div class="popup-title">🌾 พื้นที่เกษตรกรรม</div>
+          <div class="popup-row"><span>ประเภท</span><span>${feature.properties.LU_DES_EN || 'Agriculture'}</span></div>
+          <div class="popup-row"><span>พื้นที่</span><span>${(feature.properties.Area_Rai || 0).toLocaleString()} ไร่</span></div>
+          <div class="popup-badge" style="background:rgba(74,222,128,0.2);color:#4ade80">Food Production</div>
+        `);
+      }
+    }).addTo(layers.food);
+
+    // ─── Risk areas ───
+    L.geoJSON(riskData, {
+      style: feature => {
+        const cat = feature.properties.category;
+        if (cat === 'water') return { fillColor: '#3b82f6', fillOpacity: 0.3, color: '#3b82f6', weight: 0.5, opacity: 0.4 };
+        if (cat === 'open_green') return { fillColor: '#f97316', fillOpacity: 0.2, color: '#f97316', weight: 0.5, opacity: 0.3 };
+        return { fillColor: '#ef4444', fillOpacity: 0.25, color: '#ef4444', weight: 0.5, opacity: 0.4 };
+      },
+      onEachFeature: (feature, layer) => {
+        const catNames = { water: 'แหล่งน้ำ (River/Canal/Lake)', open_green: 'พื้นที่ลุ่มต่ำ (Marsh/Grassland)', waste_hazard: 'พื้นที่ขยะ/เหมือง' };
+        layer.bindPopup(`
+          <div class="popup-title">⚠️ พื้นที่เสี่ยงภัย</div>
+          <div class="popup-row"><span>ประเภท</span><span>${catNames[feature.properties.category] || feature.properties.category}</span></div>
+          <div class="popup-row"><span>พื้นที่</span><span>${(feature.properties.Area_Rai || 0).toLocaleString()} ไร่</span></div>
+          <div class="popup-badge" style="background:rgba(249,115,22,0.2);color:#f97316">Disaster Risk</div>
+        `);
+      }
+    }).addTo(layers.risk);
+
+    // Update stats
+    const highRiskCount = districtStats.filter(d => d.flood_risk_pct > 15).length;
+    document.getElementById('statRisk').textContent = highRiskCount;
+    document.getElementById('statDistricts').textContent = districtStats.length;
+    document.getElementById('statFood').textContent = districtStats.filter(d => d.food_access_pct > 5).length;
+
+    // Hide loading
+    setTimeout(() => document.getElementById('loading').classList.add('hide'), 500);
+
+  } catch (err) {
+    console.error('Error loading data:', err);
+    document.getElementById('loading').innerHTML = '<p style="color:#f97316">❌ Error loading data: ' + err.message + '</p>';
+  }
+}
+
+function getDistrictColor(stat) {
+  // Composite score - higher = more concern
+  const score = (1 - stat.transit_stations / 14) * 0.3 + stat.flood_risk_pct / 36 * 0.4 + (1 - stat.food_access_pct / 60) * 0.3;
+  if (score > 0.7) return '#ef4444';
+  if (score > 0.5) return '#f97316';
+  if (score > 0.3) return '#eab308';
+  return '#22c55e';
+}
+
+function createDistrictPopup(stat) {
+  return `
+    <div class="popup-title">${stat.AMPHOE_T}</div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">${stat.AMPHOE_E}</div>
+    <div class="popup-row"><span>🚆 สถานีรถไฟฟ้า</span><span style="color:var(--accent-transit)">${stat.transit_stations}</span></div>
+    <div class="popup-row"><span>🌾 พื้นที่เกษตร</span><span style="color:var(--accent-food)">${stat.food_access_pct}%</span></div>
+    <div class="popup-row"><span>⚠️ พื้นที่เสี่ยง</span><span style="color:var(--accent-risk)">${stat.flood_risk_pct}%</span></div>
+    <div class="popup-row"><span>🏙️ พื้นที่เมือง</span><span>${stat.urban_pct}%</span></div>
+    <div class="popup-row"><span>📐 พื้นที่ทั้งหมด</span><span>${stat.total_area_rai.toLocaleString()} ไร่</span></div>
+  `;
+}
+
+// Load everything
+loadData();
+</script>
+</body>
+</html>

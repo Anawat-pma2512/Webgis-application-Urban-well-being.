@@ -429,7 +429,7 @@ body {
     <div class="layer-toggle active" id="layer-transit" onclick="toggleLayer('transit')">
       <div class="layer-icon transit">🚆</div>
       <div class="layer-info">
-        <h4>Transportation Access</h4>
+        <h4>Transportation Accessibility</h4>
         <p>สถานี BTS / MRT และเส้นทาง</p>
       </div>
       <div class="toggle-switch on" id="toggle-transit"></div>
@@ -438,7 +438,7 @@ body {
     <div class="layer-toggle active" id="layer-food" onclick="toggleLayer('food')">
       <div class="layer-icon food">🌾</div>
       <div class="layer-info">
-        <h4>Food Access</h4>
+        <h4>Food Accessibilityibility</h4>
         <p>พื้นที่เกษตรกรรม / แหล่งผลิตอาหาร</p>
       </div>
       <div class="toggle-switch on" id="toggle-food"></div>
@@ -598,7 +598,7 @@ function showDistrictInfo(districtName) {
   document.getElementById('districtInfoTitle').textContent = stat.AMPHOE_T + ' (' + stat.AMPHOE_E + ')';
   
   const maxTransit = Math.max(...districtStats.map(d => d.transit_stations)) || 1;
-  const maxFood = Math.max(...districtStats.map(d => d.food_access_pct)) || 1;
+  const maxFood = Math.max(...districtStats.map(d => d.food_Accessibility_pct)) || 1;
   const maxFlood = Math.max(...districtStats.map(d => d.flood_risk_pct)) || 1;
   
   document.getElementById('districtCardContent').innerHTML = `
@@ -610,8 +610,8 @@ function showDistrictInfo(districtName) {
     </div>
     <div class="bar-row">
       <span class="bar-label" style="color:var(--accent-food)">🌾 อาหาร</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${(stat.food_access_pct/maxFood*100).toFixed(0)}%;background:var(--accent-food)"></div></div>
-      <span class="bar-value" style="color:var(--accent-food)">${stat.food_access_pct}%</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(stat.food_Accessibility_pct/maxFood*100).toFixed(0)}%;background:var(--accent-food)"></div></div>
+      <span class="bar-value" style="color:var(--accent-food)">${stat.food_Accessibility_pct}%</span>
     </div>
     <div class="bar-row">
       <span class="bar-label" style="color:var(--accent-risk)">⚠️ เสี่ยง</span>
@@ -633,14 +633,14 @@ function showDistrictInfo(districtName) {
 function renderInterpretation() {
   const highRisk = districtStats.filter(d => d.flood_risk_pct > 15).sort((a,b) => b.flood_risk_pct - a.flood_risk_pct);
   const lowTransit = districtStats.filter(d => d.transit_stations === 0).length;
-  const highFood = districtStats.filter(d => d.food_access_pct > 30);
+  const highFood = districtStats.filter(d => d.food_Accessibility_pct > 30);
   const urbanNoTransit = districtStats.filter(d => d.urban_pct > 60 && d.transit_stations < 2);
   
   document.getElementById('interpretation').innerHTML = `
 <h2>🔍 การวิเคราะห์ Urban Well-being กรุงเทพมหานคร</h2>
 <p style="color:var(--text-muted);margin-bottom:24px;">วิเคราะห์จากข้อมูลการใช้ประโยชน์ที่ดิน (LULC 2566) สถานีรถไฟฟ้า BTS/MRT และขอบเขตเขตกรุงเทพมหานคร</p>
 
-<h3>1. Transportation Access — การเข้าถึงระบบขนส่ง</h3>
+<h3>1. Transportation Accessibility — การเข้าถึงระบบขนส่ง</h3>
 <div class="insight-box">
   <p><strong>Pattern:</strong> สถานีรถไฟฟ้ากระจุกตัวใน Inner Bangkok (จตุจักร 14 สถานี, คลองเตย 9, ปทุมวัน 9) ในขณะที่เขตชานเมืองฝั่งตะวันออกและตะวันตกแทบไม่มีสถานีเลย</p>
 </div>
@@ -650,7 +650,7 @@ function renderInterpretation() {
   <li>เขตชานเมือง เช่น หนองจอก ลาดกระบัง คลองสามวา มีพื้นที่กว้างแต่ขาดโครงข่ายรถไฟฟ้า ทำให้ประชาชนต้องพึ่งพารถส่วนตัวหรือรถโดยสารเป็นหลัก</li>
 </ul>
 
-<h3>2. Food Access — การเข้าถึงแหล่งอาหาร</h3>
+<h3>2. Food Accessibility — การเข้าถึงแหล่งอาหาร</h3>
 <div class="insight-box food">
   <p><strong>Pattern:</strong> พื้นที่เกษตรกรรมกระจุกตัวในเขตรอบนอก (หนองจอก 59%, บางขุนเทียน 45%, ลาดกระบัง 42%) ขณะที่ใจกลางเมืองแทบไม่มีพื้นที่ผลิตอาหารเลย</p>
 </div>
@@ -674,7 +674,7 @@ function renderInterpretation() {
 
 <h3>4. ความเชื่อมโยงเชิงพื้นที่ (Spatial Nexus)</h3>
 <div class="insight-box">
-  <p><strong>Key Finding:</strong> กรุงเทพฯ แสดง "Inverse Relationship" ระหว่าง Transportation Access กับ Food Access อย่างชัดเจน — เขตที่ขนส่งดีไม่มีอาหาร, เขตที่มีอาหารขาดขนส่ง</p>
+  <p><strong>Key Finding:</strong> กรุงเทพฯ แสดง "Inverse Relationship" ระหว่าง Transportation Accessibility กับ Food Accessibility อย่างชัดเจน — เขตที่ขนส่งดีไม่มีอาหาร, เขตที่มีอาหารขาดขนส่ง</p>
 </div>
 <ul>
   <li><strong>Urban Core (ชั้นใน):</strong> ขนส่งดี + ไม่มีพื้นที่เกษตร + เสี่ยงน้ำท่วมจากระบบระบายน้ำ</li>
@@ -687,7 +687,7 @@ function renderInterpretation() {
   <li><strong>ขยายโครงข่ายขนส่ง:</strong> ให้ความสำคัญกับเขตรอบนอกฝั่งตะวันออก (หนองจอก, คลองสามวา, มีนบุรี) ที่มีพื้นที่กว้างแต่ขาดการเข้าถึง เพื่อเชื่อม Food Production Zone กับตลาดผู้บริโภค</li>
   <li><strong>คุ้มครองพื้นที่เกษตร:</strong> กำหนดเขตคุ้มครองเกษตรกรรม (Agricultural Protection Zone) โดยเฉพาะในหนองจอก ลาดกระบัง บางขุนเทียน ที่กำลังถูกรุกจากการขยายตัวของเมือง</li>
   <li><strong>วางแผนป้องกันน้ำท่วมแบบบูรณาการ:</strong> เชื่อมโยงระบบระบายน้ำกับ Green Infrastructure — ใช้พื้นที่เกษตรรอบนอกเป็น Retention Area และปรับปรุงระบบในเขตชั้นใน</li>
-  <li><strong>พัฒนา Urban Agriculture:</strong> ส่งเสริมเกษตรในเมืองในเขตชั้นใน (rooftop farming, community garden) เพื่อเพิ่ม Food Access ในพื้นที่ที่ขาดแคลน</li>
+  <li><strong>พัฒนา Urban Agriculture:</strong> ส่งเสริมเกษตรในเมืองในเขตชั้นใน (rooftop farming, community garden) เพื่อเพิ่ม Food Accessibility ในพื้นที่ที่ขาดแคลน</li>
   <li><strong>Disaster-Resilient Land Use Planning:</strong> เขตที่มี Multi-hazard (เช่น ลาดกระบัง มีนบุรี) ควรมีแผนผังการใช้ที่ดินเฉพาะที่คำนึงถึง Flood Risk + Food Security พร้อมกัน</li>
 </ul>
   `;
@@ -836,7 +836,7 @@ async function loadData() {
     const highRiskCount = districtStats.filter(d => d.flood_risk_pct > 15).length;
     document.getElementById('statRisk').textContent = highRiskCount;
     document.getElementById('statDistricts').textContent = districtStats.length;
-    document.getElementById('statFood').textContent = districtStats.filter(d => d.food_access_pct > 5).length;
+    document.getElementById('statFood').textContent = districtStats.filter(d => d.food_Accessibility_pct > 5).length;
 
     // Hide loading
     setTimeout(() => document.getElementById('loading').classList.add('hide'), 500);
@@ -849,7 +849,7 @@ async function loadData() {
 
 function getDistrictColor(stat) {
   // Composite score - higher = more concern
-  const score = (1 - stat.transit_stations / 14) * 0.3 + stat.flood_risk_pct / 36 * 0.4 + (1 - stat.food_access_pct / 60) * 0.3;
+  const score = (1 - stat.transit_stations / 14) * 0.3 + stat.flood_risk_pct / 36 * 0.4 + (1 - stat.food_Accessibility_pct / 60) * 0.3;
   if (score > 0.7) return '#ef4444';
   if (score > 0.5) return '#f97316';
   if (score > 0.3) return '#eab308';
@@ -861,7 +861,7 @@ function createDistrictPopup(stat) {
     <div class="popup-title">${stat.AMPHOE_T}</div>
     <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">${stat.AMPHOE_E}</div>
     <div class="popup-row"><span>🚆 สถานีรถไฟฟ้า</span><span style="color:var(--accent-transit)">${stat.transit_stations}</span></div>
-    <div class="popup-row"><span>🌾 พื้นที่เกษตร</span><span style="color:var(--accent-food)">${stat.food_access_pct}%</span></div>
+    <div class="popup-row"><span>🌾 พื้นที่เกษตร</span><span style="color:var(--accent-food)">${stat.food_Accessibility_pct}%</span></div>
     <div class="popup-row"><span>⚠️ พื้นที่เสี่ยง</span><span style="color:var(--accent-risk)">${stat.flood_risk_pct}%</span></div>
     <div class="popup-row"><span>🏙️ พื้นที่เมือง</span><span>${stat.urban_pct}%</span></div>
     <div class="popup-row"><span>📐 พื้นที่ทั้งหมด</span><span>${stat.total_area_rai.toLocaleString()} ไร่</span></div>

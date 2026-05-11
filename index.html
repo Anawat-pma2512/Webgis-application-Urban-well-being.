@@ -598,7 +598,7 @@ function showDistrictInfo(districtName) {
   document.getElementById('districtInfoTitle').textContent = stat.AMPHOE_T + ' (' + stat.AMPHOE_E + ')';
   
   const maxTransit = Math.max(...districtStats.map(d => d.transit_stations)) || 1;
-  const maxFood = Math.max(...districtStats.map(d => d.food_Accessibility_pct)) || 1;
+  const maxFood = Math.max(...districtStats.map(d => d.food_access_pct)) || 1;
   const maxFlood = Math.max(...districtStats.map(d => d.flood_risk_pct)) || 1;
   
   document.getElementById('districtCardContent').innerHTML = `
@@ -609,9 +609,9 @@ function showDistrictInfo(districtName) {
       <span class="bar-value" style="color:var(--accent-transit)">${stat.transit_stations} สถานี</span>
     </div>
     <div class="bar-row">
-      <span class="bar-label" style="color:var(--accent-food)">🌾 อาหาร</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${(stat.food_Accessibility_pct/maxFood*100).toFixed(0)}%;background:var(--accent-food)"></div></div>
-      <span class="bar-value" style="color:var(--accent-food)">${stat.food_Accessibility_pct}%</span>
+      <span class="bar-label" style="color:var(--accent-food)">🌾 เกษตร</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(stat.food_access_pct/maxFood*100).toFixed(0)}%;background:var(--accent-food)"></div></div>
+      <span class="bar-value" style="color:var(--accent-food)">${stat.food_access_pct}%</span>
     </div>
     <div class="bar-row">
       <span class="bar-label" style="color:var(--accent-risk)">⚠️ เสี่ยง</span>
@@ -633,7 +633,7 @@ function showDistrictInfo(districtName) {
 function renderInterpretation() {
   const highRisk = districtStats.filter(d => d.flood_risk_pct > 15).sort((a,b) => b.flood_risk_pct - a.flood_risk_pct);
   const lowTransit = districtStats.filter(d => d.transit_stations === 0).length;
-  const highFood = districtStats.filter(d => d.food_Accessibility_pct > 30);
+  const highFood = districtStats.filter(d => d.food_access_pct > 30);
   const urbanNoTransit = districtStats.filter(d => d.urban_pct > 60 && d.transit_stations < 2);
   
   document.getElementById('interpretation').innerHTML = `

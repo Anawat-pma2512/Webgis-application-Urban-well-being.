@@ -129,28 +129,4 @@ Shapefiles ──┘                                   └── Analysis Report
 - ความเชื่อมโยงเชิงพื้นที่ (Spatial Nexus)
 - ข้อเสนอแนวทางวางผังเมือง 5 ประเด็น
 
----
 
-## 6. การ Deploy บน GitHub Pages
-
-```bash
-# สร้าง repository
-git init
-git add .
-git commit -m "BKK Urban Well-being WebGIS"
-git remote add origin https://github.com/<username>/bkk-urban-wellbeing.git
-git push -u origin main
-
-# เปิด Settings → Pages → Source: main branch → Save
-# เข้าถึงที่: https://<username>.github.io/bkk-urban-wellbeing/
-```
-
-ไฟล์ที่ต้อง push ทั้งหมด:
-- `index.html`
-- `transit_stations.geojson`
-- `mrt_lines.geojson`
-- `districts.geojson`
-- `bkk_boundary.geojson`
-- `food_areas.geojson`
-- `risk_areas.geojson`
-- `district_stats.json`
